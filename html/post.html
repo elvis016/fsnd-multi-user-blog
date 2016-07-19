@@ -1,0 +1,29 @@
+{% extends "index.html" %}
+{% block content %}
+<br>
+<div class="table-responsive">
+  <table class="table">
+    <tr>
+      <th>Subject</th>
+      <td>{{ post.subject }}</td>
+    </tr>
+    <tr>
+      <th>Content</th>
+      <td>{{ post.render() | safe }}</td>
+    </tr>
+    <tr>
+      <th>Author</th>
+      <td>{{ post.author }}</td>
+    </tr>
+    <tr>
+      <th>Created</th>
+      <td>{{ post.created.strftime("%b %d, %Y") }}</td>
+    </tr>
+    <tr>
+      <th>Last Modified</th>
+      <td>{{ post.last_modified.strftime("%b %d, %Y") }}</td>
+    </tr>
+  </table>
+</div>
+
+{% endblock %}

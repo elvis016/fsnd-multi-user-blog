@@ -1,0 +1,48 @@
+{% extends "index.html" %}
+{% block content %}
+
+<div class="row">
+  <h2>Delete Post</h2>
+</div>
+<div class="row">
+  <div class="col-md-6">
+
+    <div class="table-responsive">
+      <table class="table">
+        <tr>
+          <th>Subject</th>
+          <td>{{ post.subject }}</td>
+        </tr>
+        <tr>
+          <th>Content</th>
+          <td>{{ post.render() | safe }}</td>
+        </tr>
+        <tr>
+          <th>Author</th>
+          <td>{{ post.author }}</td>
+        </tr>
+        <tr>
+          <th>Created</th>
+          <td>{{ post.created.strftime("%b %d, %Y") }}</td>
+        </tr>
+        <tr>
+          <th>Last Modified</th>
+          <td>{{ post.last_modified.strftime("%b %d, %Y") }}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="row  text-right">
+      <form method="post">
+        <div class="btn-group" role="group">
+          <button type="submit" class="btn btn-default" aria-label="Trash" name="trash" value="{{ post.key.id() }}">
+            <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

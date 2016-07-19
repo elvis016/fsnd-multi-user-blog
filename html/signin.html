@@ -1,0 +1,35 @@
+{% extends "index.html" %}
+{% block content %}
+
+<div class="row">
+  <div class="col-xs-12 col-md-8">
+  <h2>Sign In</h2>
+  <form method="post">
+    <table class="table">
+      <tr>
+        <td class="">
+          Username
+        </td>
+        <td>
+          <input type="text" name="username" value="{{username}}">
+        </td>
+      </tr>
+      <tr>
+        <td class="">
+          Password
+        </td>
+        <td>
+          <input type="password" name="password" value="">
+        </td>
+      </tr>
+    </table>
+    <div class="row">
+      {% if error %}
+      {{error}} <a href="/signup">Sign Up</a>
+      {% endif %}
+    </div>
+    <input type="submit">
+  </form>
+  </div>
+</div>
+{% endblock %}
