@@ -2,6 +2,7 @@
 
 {% block content %}
 <br>
+
 {% for p in posts %}
 
   <div class="row">
@@ -30,15 +31,20 @@
           </tr>
         </table>
       </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
       <div class="text-right">
         {% if p.author == author %}
-          <form method="post" class="form-inline">
+          <form method="post">
             <div class="btn-group" role="group">
               <button type="submit" class="btn btn-default" aria-label="Like" name="like" value="{{ p.key.id() }}">
-                <span class="glyphicon glyphicon-thumbs-up" aria-hidden="true">{{ p.like }}</span>
+                <span class="glyphicon glyphicon-thumbs-up" aria-hidden="true">{{ p.like|length }}</span>
               </button>
               <button type="submit" class="btn btn-default" aria-label="Dislike" name="dislike" value="{{ p.key.id() }}">
-                <span class="glyphicon glyphicon-thumbs-down" aria-hidden="true">{{ p.dislike }}</span>
+                <span class="glyphicon glyphicon-thumbs-down" aria-hidden="true">{{ p.dislike|length }}</span>
               </button>
               <button type="submit" class="btn btn-default" aria-label="Edit" name="edit" value="{{ p.key.id() }}">
                 <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
@@ -46,16 +52,19 @@
               <button type="submit" class="btn btn-default" aria-label="Trash" name="trash" value="{{ p.key.id() }}">
                 <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
               </button>
+              <button type="sbumit" class="btn btn-default" aria-label="Comment" name="comment" value="{{ p.key.id() }}">
+                <span class="glyphicon glyphicon-comment" aria-hidden="true"></span>
+              </button>
             </div>
           </form>
         {% else %}
-          <form method="post" class="form-inline">
+          <form method="post">
             <div class="btn-group" role="group">
               <button type="submit" class="btn btn-default" aria-label="Like" name="like" value="{{ p.key.id() }}">
-                <span class="glyphicon glyphicon-thumbs-up" aria-hidden="true">{{ p.like }}</span>
+                <span class="glyphicon glyphicon-thumbs-up" aria-hidden="true">{{ p.like|length }}</span>
               </button>
               <button type="submit" class="btn btn-default" aria-label="Dislike" name="dislike" value="{{ p.key.id() }}">
-                <span class="glyphicon glyphicon-thumbs-down" aria-hidden="true">{{ p.dislike }}</span>
+                <span class="glyphicon glyphicon-thumbs-down" aria-hidden="true">{{ p.dislike|length }}</span>
               </button>
               <button type="sbumit" class="btn btn-default" aria-label="Comment" name="comment" value="{{ p.key.id() }}">
                 <span class="glyphicon glyphicon-comment" aria-hidden="true"></span>

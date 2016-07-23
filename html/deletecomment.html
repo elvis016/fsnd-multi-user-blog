@@ -1,0 +1,47 @@
+{% extends "index.html" %}
+{% block content %}
+
+<div class="row">
+  <h2>Delete Comment</h2>
+</div>
+<div class="row">
+  <div class="col-md-6">
+
+    <div class="table-responsive">
+      <table class="table">
+        <tr>
+          <th>Comment</th>
+          <td>{{ comment.render() | safe }}</td>
+        </tr>
+        <tr>
+          <th>Author</th>
+          <td>{{ comment.author }}</td>
+        </tr>
+        <tr>
+          <th>Created</th>
+          <td>{{ comment.created.strftime("%b %d, %Y") }}</td>
+        </tr>
+        <tr>
+          <th>Last Modified</th>
+          <td>{{ comment.last_modified.strftime("%b %d, %Y") }}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="text-right">
+      <form method="post">
+        <div class="btn-group" role="group">
+          <button type="submit" class="btn btn-default" aria-label="Ok" name="ok" value="{{ comment.key.id() }}">
+            <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+          </button>
+          <button type="submit" class="btn btn-default" aria-label="Remove" name="remove" value="{{ comment.key.id() }}">
+            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

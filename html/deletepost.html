@@ -32,11 +32,14 @@
       </table>
     </div>
 
-    <div class="row  text-right">
+    <div class="text-right">
       <form method="post">
         <div class="btn-group" role="group">
-          <button type="submit" class="btn btn-default" aria-label="Trash" name="trash" value="{{ post.key.id() }}">
-            <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+          <button type="submit" class="btn btn-default" aria-label="Ok" name="ok" value="{{ post.key.id() }}">
+            <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+          </button>
+          <button type="submit" class="btn btn-default" aria-label="Remove" name="remove" value="{{ post.key.id() }}">
+            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
           </button>
         </div>
       </form>

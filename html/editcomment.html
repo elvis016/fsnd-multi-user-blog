@@ -3,28 +3,27 @@
 
 <div class="row">
   <div class="col-md-6">
-    <h2>Edit Post</h2>
+    <h2>Edit Comment</h2>
   </div>
 </div>
 <div class="row">
   <div class="col-md-6">
-    <h5>Author: {{ post.author }}</h5>
+    <h5>Author: {{ comment.author }}</h5>
   </div>
 </div>
 <div class="row">
   <div class="col-md-6">
     <form method="post">
       <div class="form-group row">
-        <label>Subject: {{ post.subject }}</label>
-        <textarea class="form-control" rows="6" name="content">{{ post.content }}</textarea>
+        <textarea class="form-control" rows="6" name="content">{{ comment.comment }}</textarea>
       </div>
       <div class="row" style="color:red">{{error}}</div>
       <div class="text-right">
         <div class="btn-group" role="group">
-          <button type="submit" class="btn btn-default" aria-label="Ok" name="ok" value="{{ post.key.id() }}">
+          <button type="submit" class="btn btn-default" aria-label="Ok" name="ok" value="{{ comment.key.id() }}">
             <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
           </button>
-          <button type="submit" class="btn btn-default" aria-label="Remove" name="remove" value="{{ post.key.id() }}">
+          <button type="submit" class="btn btn-default" aria-label="Remove" name="remove" value="{{ comment.key.id() }}">
             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
           </button>
         </div>

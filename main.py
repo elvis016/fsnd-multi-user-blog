@@ -201,7 +201,7 @@ class Register(SignUp):
 
 
 class Welcome(Handler):
-    """docstring for We"""
+    """Welcome new user"""
     def get(self):
         if self.user:
             self.render('welcome.html', username=self.user.name)
@@ -210,7 +210,7 @@ class Welcome(Handler):
 
 
 class SignIn(Handler):
-    """docstring for We"""
+    """Register new user"""
     def get(self):
         self.render('signin.html')
 
@@ -227,7 +227,7 @@ class SignIn(Handler):
 
 
 class SignOut(Handler):
-    """docstring for SignOut"""
+    """User to signOut"""
     def get(self):
         self.logout()
         self.redirect('/welcome')
@@ -250,8 +250,8 @@ class BlogPost(ndb.Model):
     author = ndb.StringProperty(required=True)
     created = ndb.DateTimeProperty(auto_now_add=True)
     last_modified = ndb.DateTimeProperty(auto_now=True)
-    like = ndb.IntegerProperty(required=True)
-    dislike = ndb.IntegerProperty(required=True)
+    like = ndb.IntegerProperty(repeated=True)
+    dislike = ndb.IntegerProperty(repeated=True)
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
@@ -267,8 +267,8 @@ class PostComment(ndb.Model):
     author = ndb.StringProperty(required=True)
     created = ndb.DateTimeProperty(auto_now_add=True)
     last_modified = ndb.DateTimeProperty(auto_now=True)
-    like = ndb.IntegerProperty(required=True)
-    dislike = ndb.IntegerProperty(required=True)
+    like = ndb.IntegerProperty(repeated=True)
+    dislike = ndb.IntegerProperty(repeated=True)
 
     def render(self):
         self._render_text = self.comment.replace('\n', '<br>')
@@ -296,8 +296,8 @@ class NewPost(Handler):
                         subject=subject,
                         content=content,
                         author=author,
-                        like=0,
-                        dislike=0)
+                        like=[],
+                        dislike=[])
             post.put()
 
             self.redirect('/blog/%s' % str(post.key.id()))
@@ -322,23 +322,37 @@ class PostPage(Handler):
 class EditPost(Handler):
     def get(self, post_id):
         post = BlogPost.get_by_id(int(post_id), parent=blog_key())
+
         if self.user and self.user.name == post.author:
             self.render('editpost.html', post=post)
+
         else:
             self.redirect('/signin')
 
     def post(self, post_id):
-        content = self.request.get('content')
-        post = BlogPost.get_by_id(int(post_id), parent=blog_key())
-        post.content = content
-        post.put()
-        time.sleep(.1)
-        self.redirect('/blog')
+
+        ok_id = self.request.get('ok')
+        cancel_id = self.request.get('remove')
+
+        if self.user and ok_id:
+            content = self.request.get('content')
+            post = BlogPost.get_by_id(int(post_id), parent=blog_key())
+            post.content = content
+            post.put()
+            time.sleep(.1)
+            self.redirect('/blog')
+
+        elif self.user and cancel_id:
+            self.redirect('/blog')
+
+        else:
+            self.redirect('/signin')
 
 
 class DeletePost(Handler):
     def get(self, post_id):
         post = BlogPost.get_by_id(int(post_id), parent=blog_key())
+
         if self.user and self.user.name == post.author:
             self.render('deletepost.html', post=post)
         else:
@@ -346,9 +360,19 @@ class DeletePost(Handler):
 
     def post(self, post_id):
         post = BlogPost.get_by_id(int(post_id), parent=blog_key())
-        post.key.delete()
-        time.sleep(.1)
-        self.redirect('/blog')
+        ok_id = self.request.get('ok')
+        cancel_id = self.request.get('remove')
+
+        if self.user and ok_id:
+            post.key.delete()
+            time.sleep(.1)
+            self.redirect('/blog')
+
+        elif self.user and cancel_id:
+            self.redirect('/blog')
+
+        else:
+            self.redirect('/signin')
 
 
 class CommentPost(Handler):
@@ -356,31 +380,38 @@ class CommentPost(Handler):
         post_entity = BlogPost.get_by_id(int(post_id), parent=blog_key())
         comment_entity_all = PostComment.query(
             PostComment.blog == post_entity.key).fetch()
-        print comment_entity_all
+        author = self.user.name
 
         if self.user:
             self.render('comment.html',
                         post_entity=post_entity,
-                        comments=comment_entity_all)
+                        comments=comment_entity_all,
+                        author=author)
         else:
             self.redirect('/signin')
 
     def post(self, post_id):
 
+        post_entity = BlogPost.get_by_id(int(post_id), parent=blog_key())
+        post_id = post_entity.key.id()
+        comment = self.request.get('comment')
+        edit_comment = self.request.get('edit')
+        delete_comment = self.request.get('trash')
+        author = self.user.name
+
+        print edit_comment
+        print delete_comment
+
         if not self.user:
             self.redirect('/blog')
 
-        post_entity = BlogPost.get_by_id(int(post_id), parent=blog_key())
-        comment = self.request.get('comment')
-        author = self.user.name
-
-        if comment:
+        elif self.user and comment:
             comment = PostComment(
                         blog=post_entity.key,
                         comment=comment,
                         author=author,
-                        like=0,
-                        dislike=0)
+                        like=[],
+                        dislike=[])
             comment.put()
             time.sleep(.1)
 
@@ -390,7 +421,17 @@ class CommentPost(Handler):
             self.render(
                 'comment.html',
                 post_entity=post_entity,
-                comments=comment_entity_all)
+                comments=comment_entity_all,
+                author=author)
+
+        elif self.user and edit_comment:
+            comment_post_id = str(edit_comment) + '|' + str(post_id)
+            self.redirect('/editcomment/%s' % comment_post_id)
+
+        elif self.user and delete_comment:
+            comment_post_id = str(delete_comment) + '|' + str(post_id)
+            self.redirect('/deletecomment/%s' % comment_post_id)
+
         else:
             error = "Your comment, please!"
             comment_entity_all = PostComment.query(
@@ -400,16 +441,82 @@ class CommentPost(Handler):
                 post_entity=post_entity,
                 comment=comment,
                 comments=comment_entity_all,
+                author=author,
                 error=error)
+
+
+class EditComment(Handler):
+    def get(self, comment_post_id):
+        comment_id = comment_post_id.split('|')[0]
+        comment = PostComment.get_by_id(int(comment_id))
+
+        if self.user and self.user.name == comment.author:
+            self.render('editcomment.html', comment=comment)
+
+        else:
+            self.redirect('/signin')
+
+    def post(self, comment_post_id):
+        comment_id = comment_post_id.split('|')[0]
+        post_id = comment_post_id.split('|')[1]
+
+        ok_id = self.request.get('ok')
+        cancel_id = self.request.get('remove')
+
+        if self.user and ok_id:
+            content = self.request.get('content')
+            comment = PostComment.get_by_id(int(comment_id))
+            comment.comment = content
+            comment.put()
+            time.sleep(.1)
+            self.redirect('/comment/%s' % str(post_id))
+
+        elif self.user and cancel_id:
+            self.redirect('/comment/%s' % str(post_id))
+
+        else:
+            self.redirect('/signin')
+
+
+class DeleteComment(Handler):
+    def get(self, comment_post_id):
+        comment_id = comment_post_id.split('|')[0]
+        comment = PostComment.get_by_id(int(comment_id))
+
+        if self.user and self.user.name == comment.author:
+            self.render('deletecomment.html', comment=comment)
+
+        else:
+            self.redirect('/signin')
+
+    def post(self, comment_post_id):
+        comment_id = comment_post_id.split('|')[0]
+        post_id = comment_post_id.split('|')[1]
+
+        ok_id = self.request.get('ok')
+        cancel_id = self.request.get('remove')
+
+        if self.user and ok_id:
+            comment = PostComment.get_by_id(int(comment_id))
+            comment.key.delete()
+            time.sleep(.1)
+            self.redirect('/comment/%s' % str(post_id))
+
+        elif self.user and cancel_id:
+            self.redirect('/comment/%s' % str(post_id))
+
+        else:
+            self.redirect('/signin')
 
 
 class BlogFront(Handler):
     def get(self):
         posts = BlogPost.query().order(-BlogPost.last_modified).fetch(10)
+
         if self.user:
             author = self.user.name
         else:
-            author = 'anoaymous'
+            author = 'anonymous'
 
         self.render('front.html', posts=posts, author=author)
 
@@ -417,55 +524,55 @@ class BlogFront(Handler):
 
         if self.user:
             author = self.user.name
+            user_id = self.user.key.id()
+
+            editPost_id = ""
+            trashPost_id = ""
+            editPost_id = self.request.get('edit')
+            trashPost_id = self.request.get('trash')
+            like_id = self.request.get('like')
+            dislike_id = self.request.get('dislike')
+            comment_id = self.request.get('comment')
+
+            if editPost_id:
+
+                self.redirect('/editpost/%s' % str(editPost_id))
+
+            if trashPost_id:
+                # print trashPost_id
+                self.redirect('/deletepost/%s' % str(trashPost_id))
+
+            if comment_id:
+                # print trashPost_id
+                self.redirect('/comment/%s' % str(comment_id))
+
+            if like_id:
+                post_entity = BlogPost.get_by_id(
+                    int(like_id), parent=blog_key())
+
+                if (author != post_entity.author and
+                        user_id not in post_entity.like):
+                    post_entity.like.append(user_id)
+                    post_entity.put()
+                    time.sleep(.1)
+
+            if dislike_id:
+                post_entity = BlogPost.get_by_id(
+                    int(dislike_id), parent=blog_key())
+
+                if (author != post_entity.author and
+                        user_id not in post_entity.dislike):
+                    post_entity.dislike.append(user_id)
+                    post_entity.put()
+                    time.sleep(.1)
+
+            posts = BlogPost.query().order(-BlogPost.last_modified).fetch(10)
+
+            self.render('front.html', posts=posts, author=author)
+
         else:
-            author = 'anoaymous'
+            author = 'anonymous'
             self.redirect('/signin')
-
-        editPost_id = ""
-        trashPost_id = ""
-        editPost_id = self.request.get('edit')
-        trashPost_id = self.request.get('trash')
-        like_id = self.request.get('like')
-        dislike_id = self.request.get('dislike')
-        comment_id = self.request.get('comment')
-
-        if editPost_id:
-            # post_A = BlogPost.get_by_id(int(editPost_id), parent=blog_key())
-            # post_B = ndb.Key('BlogPost', int(editPost_id), parent=blog_key())
-            # print post_A.key, post_B
-            # post_A.key get same answer as post_B
-            # print post_A, post_B.get()
-            # post_A get same answer as post_B.get()
-            self.redirect('/editpost/%s' % str(editPost_id))
-
-        if trashPost_id:
-            # print trashPost_id
-            self.redirect('/deletepost/%s' % str(trashPost_id))
-
-        if comment_id:
-            # print trashPost_id
-            self.redirect('/comment/%s' % str(comment_id))
-
-        if like_id and author != 'anoaymous':
-            post_entity = BlogPost.get_by_id(
-                int(like_id), parent=blog_key())
-            if author != post_entity.author:
-                post_entity.like += 1
-                post_entity.put()
-                time.sleep(.1)
-
-        if dislike_id and author != 'anoaymous':
-            post_entity = BlogPost.get_by_id(
-                int(dislike_id), parent=blog_key())
-            if author != post_entity.author:
-                post_entity.dislike += 1
-                post_entity.put()
-                time.sleep(.1)
-
-        posts = BlogPost.query().order(-BlogPost.last_modified).fetch(10)
-
-        self.render('front.html', posts=posts, author=author)
-
 
 app = webapp2.WSGIApplication([
     ('/', MainPage),
@@ -478,5 +585,7 @@ app = webapp2.WSGIApplication([
     ('/editpost/([0-9]+)', EditPost),
     ('/deletepost/([0-9]+)', DeletePost),
     ('/comment/([0-9]+)', CommentPost),
+    ('/editcomment/([0-9]+[|][0-9]+)', EditComment),
+    ('/deletecomment/([0-9]+[|][0-9]+)', DeleteComment),
     (r'/blog/?', BlogFront)
 ], debug=True)
