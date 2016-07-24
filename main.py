@@ -142,7 +142,12 @@ class Handler(webapp2.RequestHandler):
 
 class MainPage(Handler):
     def get(self):
-        self.render('index.html')
+
+        if self.user:
+            login = 'yes'
+            self.render('index.html', login=login)
+        else:
+            self.redirect('/signin')
 
 
 class SignUp(Handler):
@@ -204,9 +209,10 @@ class Welcome(Handler):
     """Welcome new user"""
     def get(self):
         if self.user:
-            self.render('welcome.html', username=self.user.name)
+            login = 'yes'
+            self.render('welcome.html', username=self.user.name, login=login)
         else:
-            self.redirect('/signup')
+            self.redirect('/signin')
 
 
 class SignIn(Handler):
@@ -267,8 +273,6 @@ class PostComment(ndb.Model):
     author = ndb.StringProperty(required=True)
     created = ndb.DateTimeProperty(auto_now_add=True)
     last_modified = ndb.DateTimeProperty(auto_now=True)
-    like = ndb.IntegerProperty(repeated=True)
-    dislike = ndb.IntegerProperty(repeated=True)
 
     def render(self):
         self._render_text = self.comment.replace('\n', '<br>')
@@ -278,45 +282,52 @@ class PostComment(ndb.Model):
 class NewPost(Handler):
     def get(self):
         if self.user:
-            self.render('newpost.html')
+            login = 'yes'
+            self.render('newpost.html', login=login)
         else:
             self.redirect('/signin')
 
     def post(self):
-        if not self.user:
-            self.redirect('/blog')
+        if self.user:
+            login = 'yes'
+            subject = self.request.get('subject')
+            content = self.request.get('content')
+            author = self.user.name
 
-        subject = self.request.get('subject')
-        content = self.request.get('content')
-        author = self.user.name
+            if subject and content:
+                post = BlogPost(
+                            parent=blog_key(),
+                            subject=subject,
+                            content=content,
+                            author=author,
+                            like=[],
+                            dislike=[])
+                post.put()
 
-        if subject and content:
-            post = BlogPost(
-                        parent=blog_key(),
-                        subject=subject,
-                        content=content,
-                        author=author,
-                        like=[],
-                        dislike=[])
-            post.put()
-
-            self.redirect('/blog/%s' % str(post.key.id()))
+                self.redirect('/blog/%s' % str(post.key.id()))
+            else:
+                error = "subject and content, please!"
+                self.render(
+                    'newpost.html',
+                    subject=subject, content=content, error=error, login=login)
         else:
-            error = "subject and content, please!"
-            self.render(
-                'newpost.html', subject=subject, content=content, error=error)
+            self.redirect('/signin')
 
 
 class PostPage(Handler):
     def get(self, post_id):
-        post_key = ndb.Key('BlogPost', int(post_id), parent=blog_key())
-        post = post_key.get()
+        if self.user:
+            login = 'yes'
+            post_key = ndb.Key('BlogPost', int(post_id), parent=blog_key())
+            post = post_key.get()
 
-        if not post:
-            self.error(404)
-            return
+            if not post:
+                self.error(404)
+                return
 
-        self.render("post.html", post=post)
+            self.render("post.html", post=post, login=login)
+        else:
+            self.redirect('/signin')
 
 
 class EditPost(Handler):
@@ -324,7 +335,8 @@ class EditPost(Handler):
         post = BlogPost.get_by_id(int(post_id), parent=blog_key())
 
         if self.user and self.user.name == post.author:
-            self.render('editpost.html', post=post)
+            login = 'yes'
+            self.render('editpost.html', post=post, login=login)
 
         else:
             self.redirect('/signin')
@@ -334,16 +346,17 @@ class EditPost(Handler):
         ok_id = self.request.get('ok')
         cancel_id = self.request.get('remove')
 
-        if self.user and ok_id:
-            content = self.request.get('content')
-            post = BlogPost.get_by_id(int(post_id), parent=blog_key())
-            post.content = content
-            post.put()
-            time.sleep(.1)
-            self.redirect('/blog')
+        if self.user:
+            if ok_id:
+                content = self.request.get('content')
+                post = BlogPost.get_by_id(int(post_id), parent=blog_key())
+                post.content = content
+                post.put()
+                time.sleep(.1)
+                self.redirect('/blog')
 
-        elif self.user and cancel_id:
-            self.redirect('/blog')
+            if cancel_id:
+                self.redirect('/blog')
 
         else:
             self.redirect('/signin')
@@ -354,7 +367,8 @@ class DeletePost(Handler):
         post = BlogPost.get_by_id(int(post_id), parent=blog_key())
 
         if self.user and self.user.name == post.author:
-            self.render('deletepost.html', post=post)
+            login = 'yes'
+            self.render('deletepost.html', post=post, login=login)
         else:
             self.redirect('/blog')
 
@@ -363,13 +377,14 @@ class DeletePost(Handler):
         ok_id = self.request.get('ok')
         cancel_id = self.request.get('remove')
 
-        if self.user and ok_id:
-            post.key.delete()
-            time.sleep(.1)
-            self.redirect('/blog')
+        if self.user:
+            if ok_id:
+                post.key.delete()
+                time.sleep(.1)
+                self.redirect('/blog')
 
-        elif self.user and cancel_id:
-            self.redirect('/blog')
+            if cancel_id:
+                self.redirect('/blog')
 
         else:
             self.redirect('/signin')
@@ -379,14 +394,16 @@ class CommentPost(Handler):
     def get(self, post_id):
         post_entity = BlogPost.get_by_id(int(post_id), parent=blog_key())
         comment_entity_all = PostComment.query(
-            PostComment.blog == post_entity.key).fetch()
-        author = self.user.name
+                        PostComment.blog == post_entity.key).fetch()
 
         if self.user:
+            author = self.user.name
+            login = 'yes'
             self.render('comment.html',
                         post_entity=post_entity,
                         comments=comment_entity_all,
-                        author=author)
+                        author=author,
+                        login=login)
         else:
             self.redirect('/signin')
 
@@ -397,52 +414,52 @@ class CommentPost(Handler):
         comment = self.request.get('comment')
         edit_comment = self.request.get('edit')
         delete_comment = self.request.get('trash')
-        author = self.user.name
 
-        print edit_comment
-        print delete_comment
+        if self.user:
+            author = self.user.name
+            login = 'yes'
 
-        if not self.user:
-            self.redirect('/blog')
+            if comment:
+                comment = PostComment(
+                            blog=post_entity.key,
+                            comment=comment,
+                            author=author)
+                comment.put()
+                time.sleep(.1)
 
-        elif self.user and comment:
-            comment = PostComment(
-                        blog=post_entity.key,
-                        comment=comment,
-                        author=author,
-                        like=[],
-                        dislike=[])
-            comment.put()
-            time.sleep(.1)
-
-            comment_entity_all = PostComment.query(
+                comment_entity_all = PostComment.query(
                                 PostComment.blog == post_entity.key).fetch()
 
-            self.render(
-                'comment.html',
-                post_entity=post_entity,
-                comments=comment_entity_all,
-                author=author)
+                self.render(
+                    'comment.html',
+                    post_entity=post_entity,
+                    comments=comment_entity_all,
+                    author=author,
+                    login=login)
 
-        elif self.user and edit_comment:
-            comment_post_id = str(edit_comment) + '|' + str(post_id)
-            self.redirect('/editcomment/%s' % comment_post_id)
+            else:
+                error = "Your comment, please!"
+                comment_entity_all = PostComment.query(
+                                PostComment.blog == post_entity.key).fetch()
+                self.render(
+                    'comment.html',
+                    post_entity=post_entity,
+                    comment=comment,
+                    comments=comment_entity_all,
+                    author=author,
+                    error=error,
+                    login=login)
 
-        elif self.user and delete_comment:
-            comment_post_id = str(delete_comment) + '|' + str(post_id)
-            self.redirect('/deletecomment/%s' % comment_post_id)
+            if edit_comment:
+                comment_post_id = str(edit_comment) + '|' + str(post_id)
+                self.redirect('/editcomment/%s' % comment_post_id)
+
+            if delete_comment:
+                comment_post_id = str(delete_comment) + '|' + str(post_id)
+                self.redirect('/deletecomment/%s' % comment_post_id)
 
         else:
-            error = "Your comment, please!"
-            comment_entity_all = PostComment.query(
-                                PostComment.blog == post_entity.key).fetch()
-            self.render(
-                'comment.html',
-                post_entity=post_entity,
-                comment=comment,
-                comments=comment_entity_all,
-                author=author,
-                error=error)
+            self.redirect('/signin')
 
 
 class EditComment(Handler):
@@ -451,7 +468,8 @@ class EditComment(Handler):
         comment = PostComment.get_by_id(int(comment_id))
 
         if self.user and self.user.name == comment.author:
-            self.render('editcomment.html', comment=comment)
+            login = 'yes'
+            self.render('editcomment.html', comment=comment, login=login)
 
         else:
             self.redirect('/signin')
@@ -463,16 +481,17 @@ class EditComment(Handler):
         ok_id = self.request.get('ok')
         cancel_id = self.request.get('remove')
 
-        if self.user and ok_id:
-            content = self.request.get('content')
-            comment = PostComment.get_by_id(int(comment_id))
-            comment.comment = content
-            comment.put()
-            time.sleep(.1)
-            self.redirect('/comment/%s' % str(post_id))
+        if self.user:
+            if ok_id:
+                content = self.request.get('content')
+                comment = PostComment.get_by_id(int(comment_id))
+                comment.comment = content
+                comment.put()
+                time.sleep(.1)
+                self.redirect('/comment/%s' % str(post_id))
 
-        elif self.user and cancel_id:
-            self.redirect('/comment/%s' % str(post_id))
+            if cancel_id:
+                self.redirect('/comment/%s' % str(post_id))
 
         else:
             self.redirect('/signin')
@@ -484,7 +503,8 @@ class DeleteComment(Handler):
         comment = PostComment.get_by_id(int(comment_id))
 
         if self.user and self.user.name == comment.author:
-            self.render('deletecomment.html', comment=comment)
+            login = 'yes'
+            self.render('deletecomment.html', comment=comment, login=login)
 
         else:
             self.redirect('/signin')
@@ -496,14 +516,15 @@ class DeleteComment(Handler):
         ok_id = self.request.get('ok')
         cancel_id = self.request.get('remove')
 
-        if self.user and ok_id:
-            comment = PostComment.get_by_id(int(comment_id))
-            comment.key.delete()
-            time.sleep(.1)
-            self.redirect('/comment/%s' % str(post_id))
+        if self.user:
+            if ok_id:
+                comment = PostComment.get_by_id(int(comment_id))
+                comment.key.delete()
+                time.sleep(.1)
+                self.redirect('/comment/%s' % str(post_id))
 
-        elif self.user and cancel_id:
-            self.redirect('/comment/%s' % str(post_id))
+            if cancel_id:
+                self.redirect('/comment/%s' % str(post_id))
 
         else:
             self.redirect('/signin')
@@ -515,16 +536,19 @@ class BlogFront(Handler):
 
         if self.user:
             author = self.user.name
+            login = 'yes'
         else:
             author = 'anonymous'
+            login = 'no'
 
-        self.render('front.html', posts=posts, author=author)
+        self.render('front.html', posts=posts, author=author, login=login)
 
     def post(self):
 
         if self.user:
             author = self.user.name
             user_id = self.user.key.id()
+            login = 'yes'
 
             editPost_id = ""
             trashPost_id = ""
@@ -568,7 +592,7 @@ class BlogFront(Handler):
 
             posts = BlogPost.query().order(-BlogPost.last_modified).fetch(10)
 
-            self.render('front.html', posts=posts, author=author)
+            self.render('front.html', posts=posts, author=author, login=login)
 
         else:
             author = 'anonymous'

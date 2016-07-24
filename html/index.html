@@ -42,9 +42,12 @@
               <ul class="list-inline">
                 <li><a href="/blog">Blog</a></li>
                 <li><a href="/newpost">New Post</a></li>
-                <li><a href="/signin">Sign In</a></li>
+                {% if login == 'yes' %}
                 <li><a href="/signout">Sign Out</a></li>
+                {% else %}
+                <li><a href="/signin">Sign In</a></li>
                 <li><a href="/signup">Register</a></li>
+                {% endif %}
               </ul>
             </nav>
           </div>
